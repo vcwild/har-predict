@@ -1,0 +1,142 @@
+---
+title: "Human Activity Recognition -- Predict Classe"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+<p align="center">[Overview](#overview) | [Analysis](#analysis) | [Modeling](#modeling) |
+[Testing](#testing) | [Conclusions](#summary) | [References](#refs)</p>
+
+# <a name="overview" />Overview
+
+In this project, we'll develop a model to predict a discrete variable "classe" (ranking) based on other variables present in the [Weight Lifting Exercises dataset](http://groupware.les.inf.puc-rio.br/har), which ranks an activity performed by the wearer (from A -- "best" to E -- "worst"). The data was collected from from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants.
+
+# <a name="analysis" />Analysis 
+
+## Setup
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(randomForest)
+library(caret)
+
+set.seed(1234)
+
+trainData <- read.csv(
+    "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+    na.strings = c("NA","#DIV/0!", "")
+)
+testData <- read.csv(
+    "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+    na.strings = c("NA","#DIV/0!", "")
+)
+```
+
+## Subsets
+
+```{r}
+inTrain <- createDataPartition(trainData$classe, p = 0.7, list = FALSE)
+training <- trainData[inTrain,]
+testing <- trainData[-inTrain,]
+dim(training)
+dim(testing)
+```
+
+
+## Clean the Data
+
+```{r}
+clear <- grep("name|timestamp|window|X", colnames(training), value = FALSE)
+training <- training[, -clear]
+testing <- testing[, -clear]
+NAs <- apply(
+    training, 2, function(x) {sum(is.na(x))}
+) / nrow(training)
+training <- training[!(NAs > 0.95)] # Remove cols with NA > 95%
+testing <- testing[!(NAs > 0.95)]
+
+ncol(training)
+ncol(testing)
+```
+
+## EDA
+
+```{r warning=FALSE}
+ggplot(training, aes(classe)) + 
+    geom_histogram(stat = "count", fill = "cadetblue4") + 
+    theme_bw() +
+    labs(title = "Level of classe in the training set")
+```
+
+# <a name="modeling" />Modeling
+
+## PCA
+
+```{r}
+preProcess(training[,1:ncol(training)], method = "pca", thresh = .95)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+preProc <- preProcess(training[,1:ncol(training)], method = "pca", pcaComp = 27)
+trainingPC <- predict(preProc, training[, 1:ncol(training)])
+head(trainingPC, n = 2)
+```
+
+## Random Forest
+
+```{r message=FALSE, warning=FALSE}
+modFit1 <- randomForest(training$classe ~ ., data = trainingPC)
+array(importance(modFit1))
+```
+
+# <a name="testing" />Cross-validation (Testing)
+
+```{r message=FALSE, warning=FALSE}
+testingPC <- predict(preProc, testing[, 1:length(testing)])
+confusionMatrix(testing$classe, predict(modFit1, testingPC))$overall
+```
+
+## Validation
+
+```{r message=FALSE, warning=FALSE}
+validation <- testData[, -clear]
+validation <- validation[!(NAs > 0.95)]
+validationPC <- predict(preProc, validation[, 1:length(validation)])
+validation$classe <- predict(modFit1, validationPC)
+```
+
+# <a name="summary" />Conclusions
+
+The overall conclusions for the observations are:
+- Out of 160 variables, 53 were useful for modeling
+- 5885 out of 13737 observations were used
+- The model has a 97.5% overall accuracy
+- Sensitivity between 94.5% - 99.2%
+- Specificity between 98.9% - 99.7%
+
+### Detailed Statistics
+
+```{r}
+confusionMatrix(testing$classe, predict(modFit1, testingPC))$byClass
+```
+
+### Final Outcome
+
+```{r}
+validation$classe
+```
+
+
+```{r message=FALSE, warning=FALSE}
+ggplot(validation, aes(classe)) + geom_histogram(stat = "count", fill = "steelblue2") + theme_bw() +
+    labs(title = "Level of classe in the validation set")
+```
+
+## <a name="refs" />External References
+
+<i>Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+Cited by 2 (Google Scholar)</i>
