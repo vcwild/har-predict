@@ -4,6 +4,7 @@ Human Activity Recognition – Predict Classe
 
 [Overview](#overview) | [Analysis](#analysis) | [Modeling](#modeling) | [Testing](#testing) | [Conclusions](#summary) | [References](#refs)
 
+
 # <a name="overview" />Overview
 
 In this project, we’ll develop a model to predict a discrete variable
