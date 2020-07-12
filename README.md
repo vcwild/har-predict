@@ -2,8 +2,8 @@ Human Activity Recognition – Predict Classe
 ================
 <br>
 
-<p align="center">[Overview](#overview) | [Analysis](#analysis) | [Modeling](#modeling) |
-[Testing](#testing) | [Conclusions](#summary) | [References](#refs)</p>
+    
+   [Overview](#overview) | [Analysis](#analysis) | [Modeling](#modeling) | [Testing](#testing) | [Conclusions](#summary) | [References](#refs)</p>
 
 # <a name="overview" />Overview
 
